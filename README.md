@@ -15,6 +15,7 @@ This project is forked from [adrianhajdin/react-movies](https://github.com/adria
 1. [Introduction](#introduction)
 2. [Tech Stack](#tech-stack)
 3. [Quick Start](#quick-start)
+4. [Devopsification of the project](#devops)
 
 
 ## <a name="introduction">Introduction</a>
@@ -34,10 +35,6 @@ Built with React.js for the user interface, Appwrite for backend services, and s
 ```bash
 git clone https://github.com/harshitrajsinha/ReactFlix-devops.git
 cd react-movies
-```
-
-**Installation**
-```bash
 npm install
 ```
 
@@ -62,7 +59,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser to view the project.
 
-# <a name="">Devopsifying the project</a>
+# <a name="devops">Devopsifying the project</a>
 
 ### 🐳 Learnings from Dockerizing this reactjs-based application
 
@@ -71,6 +68,8 @@ Open [http://localhost:5173](http://localhost:5173) in your browser to view the 
 
 2. [I learnt how to secure env vars at build time using Build Secrets](#learning-2)<br>
     <a name="learning-2"></a>This project uses Appwrite, which is backend as a service, and requires credentials at the build time to be passed rather that runtime vars like PORT. Passing the env vars using `--build-arg` flag in docker build command is one way but an unsecure way as it pose the risk of embedding the vars in docker history or cached layer. Here i got to learn about how to use Build Secrets to securely pass the env vars at build time.
+
+    Docker docs: [Build secrets](https://docs.docker.com/build/building/secrets/)
 
     ```bash
     docker build --secret id=movies-app-secrets,src=.env -t harshitrajsinha/reactflix:v1 -f docker/Dockerfile .

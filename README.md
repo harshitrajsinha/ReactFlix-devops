@@ -76,3 +76,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser to view the 
     ```
 
     ![docker-image](https://raw.githubusercontent.com/harshitrajsinha/ReactFlix-devops/eeecf4a04935a8d064159434e6c4c4072d6b130a/assets/docker-image.png) 
+
+
+
+- Turn on Dependabot Alerts: The graph itself just lists what you use. Navigate to your repository Settings > Code security and analysis and enable Dependabot alerts. GitHub will cross-reference this graph with its Advisory Database to instantly warn you if any of those 153 packages contain security vulnerabilities.

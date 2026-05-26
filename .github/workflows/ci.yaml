@@ -40,13 +40,38 @@ jobs:
         with:
           audit_level: high
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          issue_labels: vulnerability,test
+          issue_labels: vulnerability,test  # these labels are used when vulnerability report is created as an issue on GitHub
           create_issues: true
       
       - name: Display audit report
         if: always()
         run: npm audit --audit-level=high || true
-         
-  # linting:
+
+  linting:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      packages: read
+
+    steps:
+      - name: Check Repository
+        uses: actions/checkout@v4
+
+      - name: Setup node v20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Check linting
+        uses: super-linter/super-linter@v8.6.0
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          DEFAULT_BRANCH: dev
+
+  # unit-test: 
 
   # image-build-and-release:

@@ -78,5 +78,17 @@ Open [http://localhost:5173](http://localhost:5173) in your browser to view the 
     ![docker-image](https://raw.githubusercontent.com/harshitrajsinha/ReactFlix-devops/eeecf4a04935a8d064159434e6c4c4072d6b130a/assets/docker-image.png) 
 
 
+### 🐙 Learnings from GitHub Actions CI pipeline
 
-- Turn on Dependabot Alerts: The graph itself just lists what you use. Navigate to your repository Settings > Code security and analysis and enable Dependabot alerts. GitHub will cross-reference this graph with its Advisory Database to instantly warn you if any of those 153 packages contain security vulnerabilities.
+1. [I learnt how to implement DevSecOps pipeline on top of CI pipeline](#learning-3)<br>
+    <a name="learning-3"></a>A typical CI pipeline would involve building the app, testing the app, building docker image and pushing to registry for release. However, there are multiple points of security concerns even before we build the app and most importantly release for deployment. Concerns related to secret leaks, vulnerable dependencies, code quality, docker image vulnerability itself. I implemented different security stages/checks like - Secret scanning using `Gitleaks`, File System scan and SBOM generation, Docker image scan using `Trivy`, SAST using `SonarQube` to ensure that the release contains a secure and stabe docker image for deployment.
+   
+   ![ReactFlix CI pipeline](https://raw.githubusercontent.com/harshitrajsinha/ReactFlix-devops/e1ddaa9c9f24a40e86c7e60a52f9c439865dabd7/assets/reactflix-ci-pipeline.png)
+
+2. [I learnt how to isolate different jobs and stages in GitHub Actions based on different branches](#learning-4)<br>
+    <a name="learning-4"></a>It is not necessary that all jobs or all stages within a job needs to run for all branches. For example, we could run a custom `npm audit` action to perform basic vulnerability scan on the npm packages in development environment but use Trivy SBOM in production environment. Similarly, we could use `Docker Scout` to scan docker image in development environment but use Trivy for production to perform aggressive scan and generate report for fixes.
+   
+  <img src="https://raw.githubusercontent.com/harshitrajsinha/ReactFlix-devops/e1ddaa9c9f24a40e86c7e60a52f9c439865dabd7/assets/sonar-sast.png" width="800" height="400" alt="SonarQube SAST output" />
+
+4. [I learnt how to enable Dependency Bot for vulnerability scan based on SBOM](#learning-5)<br>
+    <a name="learning-5"></a>Generated SBOM via Trivy and then enabled Dependencybot alerts so that GitHub will cross-reference this dependency graph generated through SBOM with its Advisory Database to instantly warn if any of the 153 packages contain security vulnerabilities.

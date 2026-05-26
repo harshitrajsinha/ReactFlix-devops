@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup node v20
         uses: actions/setup-node@v6
@@ -49,6 +51,18 @@ jobs:
       - name: Display audit report
         if: always() && github.ref == 'refs/heads/dev'
         run: npm audit --audit-level=high || true
+      
+      - name: SonarQube SAST
+        uses: SonarSource/sonarqube-scan-action@v8.1.0
+        with:
+          args: >
+            -Dsonar.projectKey=reactflix-devops
+            -Dsonar.sources=src
+            "-Dsonar.projectName=ReactFlix"
+            -Dsonar.verbose=true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       
       - name: Filesystem scan
         if: github.ref == 'refs/heads/main'

@@ -4,8 +4,11 @@ on:
   push:
     branches:
       - dev
+      - main
     paths-ignore:
       - '**/*.md'
+      - '.devcontainer/**'
+      - 'assets/**'
   
 jobs:
 
@@ -16,6 +19,7 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
+      security-events: write
 
     steps:
       - name: Checkout Repository
@@ -33,7 +37,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check vulnerability
+      - name: Check vulnerability (development env)
+        if: github.ref == 'refs/heads/dev'
         uses: oke-py/npm-audit-action@v4
         with:
           audit_level: high
@@ -42,8 +47,29 @@ jobs:
           create_issues: true
       
       - name: Display audit report
-        if: always()
+        if: always() && github.ref == 'refs/heads/dev'
         run: npm audit --audit-level=high || true
+      
+      - name: Filesystem scan
+        if: github.ref == 'refs/heads/main'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: "fs"
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          format: json
+          output: trivy-report.json
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          exit-code: 1
+
+      - name: Upload Trivy FS report
+        if: always() && github.ref == 'refs/heads/dev'
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-fs-report
+          path: trivy-report.json
+          # retention-days: 30
 
   linting:
     needs: [security-scan]
@@ -79,6 +105,11 @@ jobs:
   image-build-and-release:
     needs: [security-scan]
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      security-events: write
+
     env:
       IMAGE_NAME: harshitrajsinha/reactflix
       IMAGE_TAG: ${{ github.sha }}
@@ -109,6 +140,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan image via Docker scout
+        if: github.ref == 'refs/heads/dev'
         uses: docker/scout-action@v1
         with:
           command: cves
@@ -118,13 +150,37 @@ jobs:
           sarif-file: sarif.output.json
           summary: true
       
-      - name: Display vulnerability report
-        if: always()
+      - name: Upload docker scout report
+        if: always() && github.ref == 'refs/heads/dev'
         uses: actions/upload-artifact@v4
         with:
           name: docker-scout-report
           path: sarif.output.json
+      
+      - name: Trivy image scan
+        if: github.ref == 'refs/heads/main'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          format: sarif
+          output: trivy-image-results.sarif
+          severity: 'CRITICAL'
+          ignore-unfixed: true
+          exit-code: 1
 
-      - name: Push image
-        run: |
-          docker push $IMAGE_NAME:$IMAGE_TAG
+      - name: Upload trivy image scan artifact
+        if: always() && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-scan-report
+          path: trivy-image-results.sarif
+
+      - name: Upload trivy image scan SARIF report
+        if: always() && github.ref == 'refs/heads/main' 
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image-results.sarif
+
+      # - name: Push image
+      #   run: |
+      #     docker push $IMAGE_NAME:$IMAGE_TAG

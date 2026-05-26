@@ -1,9 +1,11 @@
-node_modules
-dist
+node_modules/
+dist/
 .git
 .gitignore
 Dockerfile
 README.md
 .env
 .env.*
-docker
+docker/
+.devcontainer/
+

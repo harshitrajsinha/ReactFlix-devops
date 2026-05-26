@@ -20,8 +20,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup node v20
         uses: actions/setup-node@v6
@@ -48,6 +46,7 @@ jobs:
         run: npm audit --audit-level=high || true
 
   linting:
+    needs: [security-scan]
     runs-on: ubuntu-latest
 
     permissions:
@@ -59,6 +58,8 @@ jobs:
     steps:
       - name: Check Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup node v20
         uses: actions/setup-node@v6

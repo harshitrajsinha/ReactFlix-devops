@@ -33,11 +33,15 @@ jobs:
           node-version: '20'   # selected compatibility based on reactjs version
           cache: npm
 
+      ## Check secrets using GitLeaks
+
       - name: Check secret leaks
         uses: gitleaks/gitleaks-action@v2
       
       - name: Install dependencies
         run: npm ci
+
+      ## Check vulnerability using external npm audit (development only)
 
       - name: Check vulnerability (development env)
         if: github.ref == 'refs/heads/dev'
@@ -52,7 +56,10 @@ jobs:
         if: always() && github.ref == 'refs/heads/dev'
         run: npm audit --audit-level=high || true
       
+      ## Perform SAST using Sonar Qube (production only)
+
       - name: SonarQube SAST
+        if: github.ref == 'refs/heads/main'
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         with:
           args: >
@@ -64,6 +71,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       
+      ## Perform File system scan using Trivy (production only)
+
       - name: Filesystem scan
         if: github.ref == 'refs/heads/main'
         uses: aquasecurity/trivy-action@v0.36.0
@@ -84,6 +93,18 @@ jobs:
       #     name: trivy-fs-report
       #     path: trivy-report.json
           # retention-days: 30
+      
+      ## Generate SBOM using Trivy (production only)
+
+      - name: Trivy SBOM
+        if: github.ref == 'refs/heads/main'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          format: 'github'
+          output: 'dependency-results.sbom.json'
+          scan-ref: '.'
+          github-pat: ${{ secrets.GITHUB_TOKEN }}
 
   linting:
     needs: [security-scan]
@@ -141,6 +162,8 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME}}
           password: ${{ secrets.DOCKERHUB_TOKEN}}
       
+      ## Build docker image
+
       - name: Build image
         uses: docker/build-push-action@v6
         with:
@@ -152,6 +175,8 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      ## Scan docker image using Docker Scout (development only)
 
       - name: Scan image via Docker scout
         if: github.ref == 'refs/heads/dev'
@@ -171,6 +196,8 @@ jobs:
           name: docker-scout-report
           path: sarif.output.json
       
+      ## Scan docker image using Trivy (production only)
+
       - name: Trivy image scan
         if: github.ref == 'refs/heads/main'
         uses: aquasecurity/trivy-action@v0.36.0

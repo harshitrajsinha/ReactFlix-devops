@@ -94,7 +94,7 @@ jobs:
       #     path: trivy-report.json
           # retention-days: 30
       
-      ## Generate SBOM using Trivy (production only)
+      ## Generate SBOM using Trivy (production only)  --- Need to enable dependency graph: https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/enabling-the-dependency-graph
 
       - name: Trivy SBOM
         if: github.ref == 'refs/heads/main'

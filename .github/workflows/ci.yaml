@@ -124,3 +124,7 @@ jobs:
         with:
           name: docker-scout-report
           path: sarif.output.json
+
+      - name: Push image
+        run: |
+          docker push $IMAGE_NAME:$IMAGE_TAG

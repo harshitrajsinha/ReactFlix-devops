@@ -57,18 +57,18 @@ jobs:
           scan-type: "fs"
           scan-ref: .
           scanners: vuln,secret,misconfig
-          format: json
-          output: trivy-report.json
+          format: table                   # change to json when need to upload as an artifact
+          # output: trivy-report.json
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
           exit-code: 1
 
-      - name: Upload Trivy FS report
-        if: always() && github.ref == 'refs/heads/dev'
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-fs-report
-          path: trivy-report.json
+      # - name: Upload Trivy FS report
+      #   if: always() && github.ref == 'refs/heads/main'
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: trivy-fs-report
+      #     path: trivy-report.json
           # retention-days: 30
 
   linting:

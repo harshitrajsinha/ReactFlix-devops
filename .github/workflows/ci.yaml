@@ -16,11 +16,10 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write # write permission is required for trivy SBOM
       issues: write
       pull-requests: write
-      security-events: write
-      dependency-graph: write
+      security-events: write # this permission is required for trivy FS and docker image scan
 
     steps:
       - name: Checkout Repository

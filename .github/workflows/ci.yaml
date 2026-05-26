@@ -42,6 +42,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           issue_labels: vulnerability,test
           create_issues: true
+      
+      - name: Display audit report
+        if: always()
+        run: npm audit --audit-level=high || true
+         
   # linting:
 
   # image-build-and-release:

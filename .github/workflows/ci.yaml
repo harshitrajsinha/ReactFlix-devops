@@ -1,0 +1,130 @@
+name: CI pipeline to automate deployment
+
+on:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - '**/*.md'
+  
+jobs:
+
+  security-scan:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup node v20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'   # selected compatibility based on reactjs version
+          cache: npm
+
+      - name: Check secret leaks
+        uses: gitleaks/gitleaks-action@v2
+      
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check vulnerability
+        uses: oke-py/npm-audit-action@v4
+        with:
+          audit_level: high
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_labels: vulnerability,test  # these labels are used when vulnerability report is created as an issue on GitHub
+          create_issues: true
+      
+      - name: Display audit report
+        if: always()
+        run: npm audit --audit-level=high || true
+
+  linting:
+    needs: [security-scan]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      packages: read
+      statuses: write
+
+    steps:
+      - name: Check Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup node v20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Check linting
+        uses: super-linter/super-linter@v8.6.0
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          DEFAULT_BRANCH: dev
+
+  # unit-test: 
+
+  image-build-and-release:
+    needs: [security-scan]
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: harshitrajsinha/reactflix
+      IMAGE_TAG: ${{ github.sha }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME}}
+          password: ${{ secrets.DOCKERHUB_TOKEN}}
+      
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          secret: id=movies-app-secrets[,src=.env]
+          file: docker/Dockerfile
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG}}
+          load: true
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image via Docker scout
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+          image: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          only-severities: critical
+          exit-code: true
+          sarif-file: sarif.output.json
+          summary: true
+      
+      - name: Display vulnerability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-scout-report
+          path: sarif.output.json
+
+      - name: Push image
+        run: |
+          docker push $IMAGE_NAME:$IMAGE_TAG

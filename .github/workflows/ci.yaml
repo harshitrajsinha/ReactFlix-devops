@@ -113,7 +113,7 @@ jobs:
         with:
           command: cves
           image: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          only-serverities: critical
+          only-severities: critical
           exit-code: true
           sarif-file: sarif.output.json
           summary: true

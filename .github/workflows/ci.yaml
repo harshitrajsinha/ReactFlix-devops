@@ -222,6 +222,6 @@ jobs:
         with:
           sarif_file: trivy-image-results.sarif
 
-      # - name: Push image
-      #   run: |
-      #     docker push $IMAGE_NAME:$IMAGE_TAG
+      - name: Push image
+        run: |
+          docker push $IMAGE_NAME:$IMAGE_TAG

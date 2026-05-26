@@ -26,11 +26,11 @@ jobs:
       - name: Setup node v24
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: '20'   # selected compatibility based on reactjs version
           cache: npm
 
       - name: Check secret leaks
-        uses: gitleaks/gitleaks-action@v24
+        uses: gitleaks/gitleaks-action@v2
       
       - name: Install dependencies
         run: npm ci

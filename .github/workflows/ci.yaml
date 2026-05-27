@@ -12,37 +12,43 @@ on:
   
 jobs:
 
+  # job-1: Perform security scans to check any secret leaks, find vulnerability within code and generate SBOM for tracking packages
   security-scan:
     runs-on: ubuntu-latest
 
     permissions:
       contents: write # write permission is required for trivy SBOM
-      issues: write
-      pull-requests: write
+      issues: write # required by oke-py for npm audit
+      pull-requests: write # required by oke-py for npm audit
       security-events: write # this permission is required for trivy FS and docker image scan
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # disable shallow clone => full repo clone, 0 indicates all history to fetch for all branches and tags
 
       - name: Setup node v20
         uses: actions/setup-node@v6
         with:
-          node-version: '20'   # selected compatibility based on reactjs version
-          cache: npm
+          node-version: '20'   # selected compatible LTS version based on reactjs "^18.3.1" version from package.json
+          cache: 'npm'
 
-      ## Check secrets using GitLeaks
+      ######### Check secret leaks using GitLeaks ##########
 
       - name: Check secret leaks
         uses: gitleaks/gitleaks-action@v2
-      
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_NOTIFY_USER_LIST: '@harshitrajsinha' # send notiification to the user if leaks detected (need to enable notification settings on account)
+
+      ######## Install dependencies ###########    
       - name: Install dependencies
         run: npm ci
 
-      ## Check vulnerability using external npm audit (development only)
+      ######### Check package vulnerability ##########
 
+        ## Perform npm audit (development only) for SCA
       - name: Check vulnerability (development env)
         if: github.ref == 'refs/heads/dev'
         uses: oke-py/npm-audit-action@v4
@@ -51,25 +57,9 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           issue_labels: vulnerability,test  # these labels are used when vulnerability report is created as an issue on GitHub
           create_issues: true
-      
       - name: Display audit report
         if: always() && github.ref == 'refs/heads/dev'
         run: npm audit --audit-level=high || true
-      
-      ## Perform SAST using Sonar Qube (production only)
-
-      - name: SonarQube SAST
-        if: github.ref == 'refs/heads/main'
-        uses: SonarSource/sonarqube-scan-action@v8.1.0
-        with:
-          args: >
-            -Dsonar.projectKey=reactflix-devops
-            -Dsonar.sources=src
-            "-Dsonar.projectName=ReactFlix"
-            -Dsonar.verbose=true
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       
       ## Perform File system scan using Trivy (production only)
 
@@ -105,6 +95,23 @@ jobs:
           output: 'dependency-results.sbom.json'
           scan-ref: '.'
           github-pat: ${{ secrets.GITHUB_TOKEN }}
+
+      ######### Perform code analysis ##########
+      
+        ## Perform SonarQube (production only) for SAST
+      - name: SonarQube SAST
+        if: github.ref == 'refs/heads/main'
+        uses: SonarSource/sonarqube-scan-action@v8.1.0
+        with:
+          args: >     # using args rather than creating sonar-project.properties file for easy accessibility (sonarqube recommends to create file)
+            -Dsonar.projectKey=reactflix-devops
+            -Dsonar.sources=src
+            "-Dsonar.projectName=ReactFlix"
+            -Dsonar.verbose=true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          
 
   linting:
     needs: [security-scan]

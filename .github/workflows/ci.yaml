@@ -114,7 +114,6 @@ jobs:
           
   # job-2: Perform linting to check erros in code syntax and code style
   linting:
-    needs: [security-scan]
     runs-on: ubuntu-latest
 
     permissions:
@@ -194,7 +193,7 @@ jobs:
           image: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           only-severities: critical
           exit-code: true
-          sarif-file: sarif.output.js
+          sarif-file: sarif.output.json
           summary: true
       - name: Upload docker scout report
         if: always() && github.ref == 'refs/heads/dev'

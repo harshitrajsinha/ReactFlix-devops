@@ -112,7 +112,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           
-
+  # job-2: Perform linting to check erros in code syntax and code style
   linting:
     needs: [security-scan]
     runs-on: ubuntu-latest
@@ -140,10 +140,11 @@ jobs:
         uses: super-linter/super-linter@v8.6.0
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          DEFAULT_BRANCH: dev
+          DEFAULT_BRANCH: main
 
   # unit-test: 
 
+  # job-3: Perform docker image build, scan and release
   image-build-and-release:
     needs: [security-scan]
     runs-on: ubuntu-latest
@@ -193,9 +194,8 @@ jobs:
           image: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           only-severities: critical
           exit-code: true
-          sarif-file: sarif.output.json
+          sarif-file: sarif.output.js
           summary: true
-      
       - name: Upload docker scout report
         if: always() && github.ref == 'refs/heads/dev'
         uses: actions/upload-artifact@v4
@@ -215,20 +215,19 @@ jobs:
           severity: 'CRITICAL'
           ignore-unfixed: true
           exit-code: 1
-
       - name: Upload trivy image scan artifact
         if: always() && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: trivy-image-scan-report
           path: trivy-image-results.sarif
-
       - name: Upload trivy image scan SARIF report
         if: always() && github.ref == 'refs/heads/main' 
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image-results.sarif
 
+      ## Release the docker image to registry for deployment pipeline
       - name: Push image
         run: |
           docker push $IMAGE_NAME:$IMAGE_TAG

@@ -159,6 +159,18 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Setup node v20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'   
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app for fast fail (if)
+        run: npm run build
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
